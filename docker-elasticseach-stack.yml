@@ -5,7 +5,9 @@ services:
   master:
     image: itzg/elasticsearch:2.4.3
     networks:
-      - backend
+       backend:
+        aliases:
+          - es-master
     labels:
       pf.gov.elasticsearch.role: "master"
     environment:
@@ -23,6 +25,9 @@ services:
   data: 
     image: itzg/elasticsearch:2.4.3
     networks:
+        backend:
+        aliases:
+          - es-data
       - backend
     labels:
       pf.gov.elasticsearch.role: "data"
@@ -40,7 +45,9 @@ services:
   gateway:
     image: itzg/elasticsearch:2.4.3
     networks:
-      - backend
+      backend:
+        aliases:
+          - es-gateway
     labels:
       pf.gov.elasticsearch.role: "gateway"
     ports:

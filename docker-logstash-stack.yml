@@ -1,0 +1,94 @@
+version: "3"
+
+services:
+
+  redis:
+    image: redis:3.2.8
+    networks:
+      - backend
+    labels:
+      pf.gov.tier: "backend"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 30s
+      restart_policy:
+        condition: on-failure
+
+  indexer:
+    image: logstash:2.4.1
+    networks:
+      - backend
+      - elasticsearch_backend
+    depends_on:
+      - redis
+      - es-gateway
+    labels:
+      pf.gov.tier: "backend"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 60s
+      restart_policy:
+        condition: on-failure
+    command: |
+      -e '
+        input {
+          redis {
+            host => "redis"
+            port => "6379"
+            data_type => "list"
+            key => "logstash"
+          }
+        }
+        filter {
+        }
+        output {
+          elasticsearch {
+            hosts => ["es-gateway:9200"]
+            index => "logstash-%{+YYYY.MM.dd}"
+          }
+        }'
+
+  collector:
+    image: logstash:2.4.1
+    networks:
+      - backend
+    depends_on:
+      - redis
+    labels:
+      pf.gov.tier: "backend"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 60s
+      restart_policy:
+        condition: on-failure
+    command: |
+      -e '
+        input {
+          udp {
+            port => 5000
+            codec => "json"
+          }
+          tcp {
+            port => 6000
+            codec => "json"
+         }
+       }
+       output {
+         redis {
+            host => "redis"
+            port => "6379"
+            data_type => "list"
+            key => "logstash"
+         }
+       }'
+
+networks:
+  backend:
+  elasticsearch_backend:
+    external: true
