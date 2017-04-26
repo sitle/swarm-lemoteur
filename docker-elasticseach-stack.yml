@@ -1,0 +1,78 @@
+version: '3'
+
+services:
+
+  master:
+    image: itzg/elasticsearch:2.4.3
+    networks:
+      - backend
+    labels:
+      pf.gov.elasticsearch.role: "master"
+    environment:
+      TYPE: MASTER
+      UNICAST_HOSTS: master
+      MIN_MASTERS: 2
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+
+  data: 
+    image: itzg/elasticsearch:2.4.3
+    networks:
+      - backend
+    labels:
+      pf.gov.elasticsearch.role: "data"
+    environment:
+      TYPE: DATA
+      UNICAST_HOSTS: master
+    deploy:
+      replicas: 5
+      update_config:
+        parallelism: 1
+        delay: 60s
+      restart_policy:
+        condition: on-failure
+
+  gateway:
+    image: itzg/elasticsearch:2.4.3
+    networks:
+      - backend
+    labels:
+      pf.gov.elasticsearch.role: "gateway"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      TYPE: GATEWAY
+      UNICAST_HOSTS: master
+
+  kibana:
+    image: kibana:4.6
+    networks:
+      - frontend
+      - backend
+    ports:
+      - "5001:5001"
+    labels:
+      pf.gov.elasticsearch.role: "dashboard"
+    environment:
+      ELASTICSEARCH_URL: http://gateway:9200
+
+  cerebro:
+    image: yannart/cerebro
+    networks:
+      - frontend
+      - backend
+    labels:
+      pf.gov.elasticsearch.role: "webui"
+    ports:
+      - "9000:9000"
+    
+networks:
+  frontend:
+  backend:
+    driver: overlay
