@@ -19,8 +19,10 @@ services:
   indexer:
     image: logstash:2.4.1
     networks:
-      - backend
-      - elasticsearch_backend
+      backend:
+        aliases:
+          - logstash-indexer
+      elasticsearch_backend:
     depends_on:
       - redis
       - es-gateway
@@ -55,7 +57,10 @@ services:
   collector:
     image: logstash:2.4.1
     networks:
-      - backend
+      backend:
+        aliases:
+          - logstash-collector
+          - logstash
     depends_on:
       - redis
     labels:

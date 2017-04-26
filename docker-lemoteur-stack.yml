@@ -1,0 +1,82 @@
+version: '3'
+
+services:
+
+  application:
+    image: registry.gov.pf/net/lemoteur:website-ref
+    networks:
+      - frontend
+      - backend
+      - logstash_backend
+      - elasticsearch_backend
+    depends_on:
+      - es-gateway
+      - logstash-collector
+      - redis
+      - database
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 60s
+      restart_policy:
+        condition: on-failure
+
+  redis:
+    image: redis:3.2.8
+    networks:
+      - frontend
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 60s
+      restart_policy:
+        condition: on-failure
+
+
+  sidekiq:
+    image: registry.gov.pf/net/lemoteur:sidekiq-ref
+    networks:
+      - backend
+      - logstash_backend
+      - elasticsearch_backend
+    depends_on:
+      - es-gateway
+      - logstash-collector
+      - redis
+      - database
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 60s
+      restart_policy:
+        condition: on-failure
+
+
+  database:
+    image: postgres:9.5
+    networks:
+      backend:
+        aliases:
+          - postgres
+    environment:
+      POSTGRES_DB: lemoteur_development
+      POSTGRES_USER: lemoteur_dbu
+      POSTGRES_PASSWORD: helloworld
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 60s
+      restart_policy:
+        condition: on-failure
+
+networks:
+  frontend:
+  backend:
+  logstash_backend:
+    external: true
+  elasticsearch_backend:
+    external: true
